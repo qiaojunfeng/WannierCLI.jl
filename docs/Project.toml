@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+WannierCLI = "40e483dc-0307-4f37-93e5-4257d0a2eaa8"
