@@ -20,7 +20,7 @@ Interpolate Fermi surface.
 - `--ef`: Fermi energy. Default is `0.0`.
 - `--outprefix`: output prefix for bxsf. Default is `wjl`
 """
-@cast function fermi_surface(
+@cast function fermisurf(
     prefix::String; nk::Int=50, dk::Float64=-0.04, ef::Float64=0.0, outprefix::String="wjl"
 )
     @printf("* Fermi surface interpolation started on %s\n", string(now()))

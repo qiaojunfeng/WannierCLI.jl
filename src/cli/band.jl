@@ -1,7 +1,7 @@
 """
 Interpolate band structure.
 
-Read tight-binding Hamiltonian from `tb.dat`/`wsvec.dat` files, kpoint path
+Read Hamiltonian from `tb.dat`/`wsvec.dat` files, kpoint path
 from `prefix.win` file, and interpolate band structure.
 
 # Args
