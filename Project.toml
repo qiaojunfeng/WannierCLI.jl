@@ -1,9 +1,15 @@
 name = "WannierCLI"
 uuid = "40e483dc-0307-4f37-93e5-4257d0a2eaa8"
 authors = ["Junfeng Qiao <qiaojunfeng@outlook.com> and contributors"]
-version = "1.0.0-DEV"
+version = "0.1.0"
+
+[deps]
+Comonicon = "863f3e99-da2a-4334-8734-de3dacbe5542"
+Wannier = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
 
 [compat]
+Comonicon = "1.0.6"
+Wannier = "0.4.0"
 julia = "1"
 
 [extras]
