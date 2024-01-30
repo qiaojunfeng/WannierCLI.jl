@@ -16,6 +16,7 @@ include("cli/truncate.jl")
 # interpolation
 include("cli/band.jl")
 include("cli/fermi_surface.jl")
+include("cli/fermi_energy.jl")
 
 """
 A collection of covenience commands to use `Wannier.jl` in CLI.
