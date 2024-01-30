@@ -5,7 +5,7 @@ completion = true
 quiet = false
 optimize = 2
 
-# [sysimg]
+[sysimg]
 # incremental = true
 # filter_stdlibs = false
 
