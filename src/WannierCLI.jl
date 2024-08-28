@@ -11,7 +11,7 @@ include("truncate.jl")
 # include("disentangle.jl")
 # include("parallel_transport.jl")
 # include("opt_rotate.jl")
-# include("split_wannierize.jl")
+include("mrwf.jl")
 
 # interpolation
 include("band.jl")
