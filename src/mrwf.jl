@@ -3,8 +3,8 @@ using TOML: parsefile
 """
 Split valence and conduction Wannier functions.
 
-Usually start from a Wannierization of valence+conduction bands.
-Then this command split WFs into two independent groups.
+Usually start from a Wannierization of valence+conduction bands,
+then this command split MLWFs into two subgroups.
 
 # Args
 
@@ -24,49 +24,63 @@ Then this command split WFs into two independent groups.
 
 # Flags
 
-- `--run-disentangle`: read `amn` and run disentangle first, otherwise read `chk` to
+- `--run-dis`: read `amn` and run disentangle first, otherwise read `chk` to
     get unitary matrices from `n_bands` to `n_wann`
 - `--run-optrot`: max localize w.r.t. single unitary matrix after parallel transport.
     Should further reduce the spread and much closer to the true max localization.
 - `--run-maxloc`: run a final max localize w.r.t. all kpoints.
     Should reach the true max localization.
-- `--rotate-unk`: generate `unk` files for valence and conduction, for plotting WFs
+- `--rot-unk`: generate `unk` files for valence and conduction, for plotting WFs
+- `--gen-win`: generate `win` files for valence and conduction
 - `--binary`: write `amn`/`mmn`/`eig`/`unk` in Fortran binary format
 """
-@cast function splitvc(
+@cast function mrwf(
     seedname::String;
-    nval::Int=0,
-    outdir_val::String="val",
-    outdir_cond::String="cond",
-    config::String="",
-    run_disentangle::Bool=false,
-    run_optrot::Bool=false,
-    run_maxloc::Bool=false,
-    rotate_unk::Bool=false,
-    binary::Bool=false,
+    nval::Int = 0,
+    outdir_val::String = "val",
+    outdir_cond::String = "cond",
+    config::String = "",
+    run_dis::Bool = false,
+    run_optrot::Bool = false,
+    run_maxloc::Bool = false,
+    rot_unk::Bool = false,
+    gen_win::Bool = false,
+    binary::Bool = false,
 )
-    # Input AMN is Silicon s,p projection
-    model = read_w90(seedname; amn=false)
-
-    if run_disentangle
-        # You can also use disentangle to get a good gauge from initial projection
-        model.U .= read_amn_ortho("$seedname.amn")
-        model.U .= disentangle(model)
+    # the valcond MLWFs
+    if run_dis
+        # Read initial gauges from amn file
+        model = read_w90(seedname)
+        model.gauges .= disentangle(model)
     else
-        # Get max localized gauge from chk file, 1st try text format, then binary
-        if isfile("$seedname.chk.fmt")
-            chk = read_chk("$seedname.chk.fmt")
-        else
-            chk = read_chk("$seedname.chk")
+        # Read MLWF gauge from chk file
+        model = read_w90_with_chk(seedname)
+    end
+    if gen_win
+        win = read_win(joinpath(seedname, ".win"))
+        win = Dict(pairs(win))
+        for k in [
+            :num_bands,
+            :dis_froz_proj,
+            :dis_proj_min,
+            :dis_proj_max,
+            :dis_win_min,
+            :dis_win_max,
+            :dis_froz_min,
+            :dis_froz_max,
+            :auto_projections,
+        ]
+            pop!(win_i, k, nothing)
         end
-        # We replace the initial projection by the "good" max loc gauge
-        model.U .= get_U(chk)
+        # just write a random projection as a placeholder
+        win_i[:projections] = ["random"]
+        win_i[:num_iter] = 1000
     end
 
-    if config == ""
-        (nval == 0) && (nval = model.n_wann ÷ 2)
+    if isempty(config)
+        (nval != 0) || @error "`nval` not provided"
         @info "number of valence WFs = $nval"
-        indices = [1:nval, (nval + 1):(model.n_wann)]
+        indices = [1:nval, (nval+1):n_wannier(model)]
         outdirs = [outdir_val, outdir_cond]
     else
         @info "reading config file: $config"
@@ -81,44 +95,49 @@ Then this command split WFs into two independent groups.
         println("    outdir : $(outdirs[i])")
     end
 
-    @info "Original model initial spread"
-    show(omega(model))
-    println("\n")
+    # @info "Spread of input model"
+    # show(omega(model))
+    # println("\n")
 
     models_Us = split_wannierize(model, indices)
 
     for (i, (m, U)) in enumerate(models_Us)
-        @info "Group $i after parallel transport:"
-        show(omega(m))
+        @info "Group $i after parallel transport:" omega(m)
         println("\n")
 
         if run_optrot
             @info "Run optimal rotation"
             println()
             W = opt_rotate(m)
-            m.U .= merge_gauge(m.U, W)
+            m.gauges .= merge_gauge(m.gauges, W)
         end
 
         if run_maxloc
             @info "Run max localization"
             println()
-            m.U .= max_localize(m)
+            m.gauges .= max_localize(m)
         end
 
         # Write files
         outdir = joinpath(dirname(seedname), outdirs[i])
-        !isdir(outdir) && mkdir(outdir)
+        mkpath(outdir)
         seedname_i = joinpath(outdir, basename(seedname))
-        write_w90(seedname_i, m; binary=binary)
+        write_w90(seedname_i, m; binary)
+
+        # prepare win file with correct num_wann
+        if gen_win
+            win_i[:num_wann] = n_wannier(m)
+            write_win("$seedname_i.win"; win_i...)
+        end
     end
 
     # UNK files for plotting WFs
-    if rotate_unk
+    if rot_unk
         dir = dirname(seedname)
-        dir == "" && (dir = ".")
+        isempty(dir) && (dir = ".")
 
         outdirs = [joinpath(dir, odir) for odir in outdirs]
-        split_unk(dir, [mU[2] for mU in models_Us], outdirs; binary=binary)
+        split_unk(dir, [mU[2] for mU in models_Us], outdirs; binary)
     end
 
     return nothing
