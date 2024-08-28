@@ -21,6 +21,6 @@ include("fermi_energy.jl")
 """
 A collection of covenience commands to use `Wannier.jl` in CLI.
 """
-@main
+Comonicon.@main
 
 end
