@@ -41,6 +41,12 @@ time as well as avoiding name clashes^1.
 
 ## Installation
 
+```shell
+julia --project deps/build.jl
+```
+
+or
+
 ```julia
 julia> ]  # enter the package manager
 (@v1.10) pkg> add WannierCLI
