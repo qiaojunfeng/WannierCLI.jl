@@ -1,4 +1,9 @@
+#!/usr/bin/env -S sh -c 'exec julia "--project=`dirname $0`/.." "$0" "$@"'
+# Use shebang tricks to set the project dir for julia
+# https://stackoverflow.com/questions/20095351/shebang-use-interpreter-relative-to-the-script-path
 using TOML: parsefile
+using Comonicon: @main as @cmain
+using Wannier
 
 """
 Split valence and conduction Wannier functions.
@@ -34,7 +39,7 @@ then this command split MLWFs into two subgroups.
 - `--gen-win`: generate `win` files for valence and conduction
 - `--binary`: write `amn`/`mmn`/`eig`/`unk` in Fortran binary format
 """
-@cast function mrwf(
+@cmain function mrwf(
     seedname::String;
     nval::Int = 0,
     outdir_val::String = "val",
@@ -57,7 +62,7 @@ then this command split MLWFs into two subgroups.
         model = read_w90_with_chk(seedname)
     end
     if gen_win
-        win = read_win(joinpath(seedname, ".win"))
+        win = read_win(seedname * ".win")
         win = Dict(pairs(win))
         for k in [
             :num_bands,
@@ -70,11 +75,11 @@ then this command split MLWFs into two subgroups.
             :dis_froz_max,
             :auto_projections,
         ]
-            pop!(win_i, k, nothing)
+            pop!(win, k, nothing)
         end
         # just write a random projection as a placeholder
-        win_i[:projections] = ["random"]
-        win_i[:num_iter] = 1000
+        win[:projections] = ["random"]
+        win[:num_iter] = 1000
     end
 
     if isempty(config)
@@ -126,8 +131,8 @@ then this command split MLWFs into two subgroups.
 
         # prepare win file with correct num_wann
         if gen_win
-            win_i[:num_wann] = n_wannier(m)
-            write_win("$seedname_i.win"; win_i...)
+            win[:num_wann] = n_wannier(m)
+            write_win("$seedname_i.win"; win...)
         end
     end
 
